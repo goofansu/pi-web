@@ -46,7 +46,15 @@ async function withMockedFetch<T>(
   const previousKey = process.env.FIRECRAWL_API_KEY;
   if (apiKey === undefined) delete process.env.FIRECRAWL_API_KEY;
   else process.env.FIRECRAWL_API_KEY = apiKey;
-  globalThis.fetch = fetchImpl;
+  globalThis.fetch = (async (url: any, init?: any) => {
+    if (String(url) === "https://reflection.int.exe.xyz/integrations") {
+      return {
+        ok: true,
+        json: async () => ({ integrations: [] }),
+      } as any;
+    }
+    return fetchImpl(url, init);
+  }) as typeof fetch;
 
   try {
     return await run(tool);
@@ -211,6 +219,48 @@ describe("web_fetch Firecrawl request", () => {
     assert.equal(result.details.authenticated, true);
     assert.doesNotMatch(text, /fc-test-key/);
     assert.doesNotMatch(JSON.stringify(result.details), /fc-test-key/);
+  });
+
+  it("uses an attached exe.dev integration without sending an API key", async () => {
+    const originalFetch = globalThis.fetch;
+    const previousKey = process.env.FIRECRAWL_API_KEY;
+    process.env.FIRECRAWL_API_KEY = "fc-test-key";
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = (async (url: any, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      if (String(url) === "https://reflection.int.exe.xyz/integrations") {
+        return {
+          ok: true,
+          json: async () => ({ integrations: [{ name: "firecrawl" }] }),
+        } as any;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => firecrawlResponse,
+      } as any;
+    }) as typeof fetch;
+
+    let result: any;
+    try {
+      const tool = registerWebFetchTool();
+      result = await tool.execute("call-1", { url: "https://example.com" });
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (previousKey === undefined) delete process.env.FIRECRAWL_API_KEY;
+      else process.env.FIRECRAWL_API_KEY = previousKey;
+    }
+
+    assert.equal(calls.length, 2);
+    assert.equal(
+      calls[1].url,
+      "https://firecrawl.int.exe.xyz/v2/scrape",
+    );
+    assert.equal(
+      (calls[1].init?.headers as Record<string, string>).Authorization,
+      undefined,
+    );
+    assert.equal(result.details.authenticated, true);
   });
 
   it("maps every supported scrape control to Firecrawl field names", async () => {

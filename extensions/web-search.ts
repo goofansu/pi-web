@@ -23,18 +23,15 @@ import {
   truncateHead,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { createExeIntegrationEndpointResolver } from "./exe-integration.ts";
 
 const BRAVE_LLM_CONTEXT_ENDPOINT =
   "https://api.search.brave.com/res/v1/llm/context";
 const EXE_BRAVE_LLM_CONTEXT_ENDPOINT =
   "https://brave.int.exe.xyz/res/v1/llm/context";
-const EXE_REFLECTION_INTEGRATIONS_ENDPOINT =
-  "https://reflection.int.exe.xyz/integrations";
 
 /** Upper bound on one Brave request, including reading the response body. */
 const REQUEST_TIMEOUT_MS = 30_000;
-/** Keep exe.dev discovery from delaying searches on other machines. */
-const EXE_DISCOVERY_TIMEOUT_MS = 1_000;
 
 const FRESHNESS_PATTERN =
   /^(pd|pw|pm|py|\d{4}-\d{2}-\d{2}to\d{4}-\d{2}-\d{2})$/;
@@ -477,45 +474,6 @@ type BraveEndpoint =
 
 type BraveEndpointResolver = () => Promise<BraveEndpoint>;
 
-/**
- * Resolve once per extension instance. Reflection is only reachable from an
- * exe.dev VM and tells us whether the credential-injecting Brave proxy is
- * attached; everywhere else, failure falls back to Brave's public endpoint.
- */
-function createBraveEndpointResolver(): BraveEndpointResolver {
-  let cached: Promise<BraveEndpoint> | undefined;
-
-  return () =>
-    (cached ??= (async () => {
-      try {
-        const response = await fetch(EXE_REFLECTION_INTEGRATIONS_ENDPOINT, {
-          signal: AbortSignal.timeout(EXE_DISCOVERY_TIMEOUT_MS),
-        });
-        if (response.ok) {
-          const data = (await response.json()) as {
-            integrations?: unknown;
-          };
-          const integrations = Array.isArray(data.integrations)
-            ? data.integrations
-            : [];
-          const attached = integrations.some((value: unknown) => {
-            if (!value || typeof value !== "object") return false;
-            const integration = value as Record<string, unknown>;
-            return (
-              integration.name === "brave" ||
-              (typeof integration.help === "string" &&
-                integration.help.includes("brave.int.exe.xyz"))
-            );
-          });
-          if (attached) return EXE_BRAVE_LLM_CONTEXT_ENDPOINT;
-        }
-      } catch {
-        // Expected off exe.dev, when Reflection is detached, or on timeout.
-      }
-      return BRAVE_LLM_CONTEXT_ENDPOINT;
-    })());
-}
-
 async function braveLlmContext(
   params: SearchParams,
   resolveEndpoint: BraveEndpointResolver,
@@ -636,7 +594,11 @@ async function braveLlmContext(
 }
 
 export default function (pi: ExtensionAPI) {
-  const resolveEndpoint = createBraveEndpointResolver();
+  const resolveEndpoint = createExeIntegrationEndpointResolver({
+    integrationName: "brave",
+    integrationEndpoint: EXE_BRAVE_LLM_CONTEXT_ENDPOINT,
+    publicEndpoint: BRAVE_LLM_CONTEXT_ENDPOINT,
+  });
 
   pi.on("session_start", async (_event, ctx) => {
     if (

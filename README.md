@@ -29,7 +29,9 @@ pi -e /absolute/path/to/pi-web
 
 ### Web fetch
 
-Firecrawl's keyless tier works without configuration. Set `FIRECRAWL_API_KEY` to use an account's higher limits and credits:
+On an exe.dev VM, `web_fetch` automatically uses an attached Firecrawl integration named `firecrawl` through `firecrawl.int.exe.xyz`.
+
+Elsewhere, Firecrawl's keyless tier works without configuration. Set `FIRECRAWL_API_KEY` to use an account's higher limits and credits:
 
 ```bash
 export FIRECRAWL_API_KEY=...

@@ -2,7 +2,8 @@
  * Web Fetch Extension — Firecrawl scrape for pi.
  *
  * Registers a web-fetch tool that sends a public URL to Firecrawl's v2 scrape
- * API and returns clean Markdown plus normalized page metadata. Firecrawl's
+ * API and returns clean Markdown plus normalized page metadata. On exe.dev it
+ * uses an attached Firecrawl integration when available. Otherwise Firecrawl's
  * keyless tier works without setup; FIRECRAWL_API_KEY is optional and, when
  * present, is sent as a Bearer token for the account's higher limits/credits.
  *
@@ -25,8 +26,10 @@ import {
   withFileMutationQueue,
 } from "@earendil-works/pi-coding-agent";
 import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { createExeIntegrationEndpointResolver } from "./exe-integration.ts";
 
 const FIRECRAWL_SCRAPE_ENDPOINT = "https://api.firecrawl.dev/v2/scrape";
+const EXE_FIRECRAWL_SCRAPE_ENDPOINT = "https://firecrawl.int.exe.xyz/v2/scrape";
 
 /** Firecrawl's scrape timeout is normally 30s; allow time for queueing/body I/O. */
 const REQUEST_TIMEOUT_MS = 75_000;
@@ -283,8 +286,15 @@ function formatResult(
   return `${metadata}\n\n---\n\n${content}`;
 }
 
+type FirecrawlEndpoint =
+  | typeof FIRECRAWL_SCRAPE_ENDPOINT
+  | typeof EXE_FIRECRAWL_SCRAPE_ENDPOINT;
+
+type FirecrawlEndpointResolver = () => Promise<FirecrawlEndpoint>;
+
 async function firecrawlScrape(
   params: FetchParams,
+  resolveEndpoint: FirecrawlEndpointResolver,
   signal?: AbortSignal,
 ): Promise<{ text: string; details: FetchDetails }> {
   const url = normalizeUrl(params.url);
@@ -294,6 +304,8 @@ async function firecrawlScrape(
   const maxAge = optionalInt(params.maxAge, 0, MAX_AGE_MS);
   const waitFor = optionalInt(params.waitFor, 0, MAX_WAIT_FOR_MS);
   const mobile = typeof params.mobile === "boolean" ? params.mobile : undefined;
+  const endpoint = await resolveEndpoint();
+  const usesExeIntegration = endpoint === EXE_FIRECRAWL_SCRAPE_ENDPOINT;
   const apiKey = process.env.FIRECRAWL_API_KEY?.trim() || undefined;
 
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
@@ -303,13 +315,15 @@ async function firecrawlScrape(
 
   let response: Response;
   try {
-    response = await fetch(FIRECRAWL_SCRAPE_ENDPOINT, {
+    response = await fetch(endpoint, {
       method: "POST",
       signal: requestSignal,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        ...(!usesExeIntegration && apiKey
+          ? { Authorization: `Bearer ${apiKey}` }
+          : {}),
       },
       body: JSON.stringify({
         url,
@@ -383,7 +397,7 @@ async function firecrawlScrape(
     max_age: maxAge,
     wait_for: waitFor,
     mobile,
-    authenticated: Boolean(apiKey),
+    authenticated: usesExeIntegration || Boolean(apiKey),
   };
   const output = await truncateOutput(formatResult(markdown, baseDetails));
 
@@ -399,6 +413,12 @@ async function firecrawlScrape(
 }
 
 export default function (pi: ExtensionAPI) {
+  const resolveEndpoint = createExeIntegrationEndpointResolver({
+    integrationName: "firecrawl",
+    integrationEndpoint: EXE_FIRECRAWL_SCRAPE_ENDPOINT,
+    publicEndpoint: FIRECRAWL_SCRAPE_ENDPOINT,
+  });
+
   pi.registerTool({
     name: "web_fetch",
     label: "Web Fetch",
@@ -473,7 +493,11 @@ export default function (pi: ExtensionAPI) {
     }),
 
     async execute(_toolCallId, params, signal) {
-      const result = await firecrawlScrape(params as FetchParams, signal);
+      const result = await firecrawlScrape(
+        params as FetchParams,
+        resolveEndpoint,
+        signal,
+      );
       return {
         content: [{ type: "text", text: result.text }],
         details: result.details,
