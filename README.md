@@ -7,22 +7,8 @@ Web tools for [Pi](https://pi.dev):
 
 ## Install
 
-From npm:
-
 ```bash
-pi install npm:pi-web
-```
-
-From a local checkout:
-
-```bash
-pi install /absolute/path/to/pi-web
-```
-
-Try it for one run without installing:
-
-```bash
-pi -e /absolute/path/to/pi-web
+pi install https://github.com/goofansu/pi-web
 ```
 
 ## Configuration
