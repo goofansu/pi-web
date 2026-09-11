@@ -1,5 +1,5 @@
 /**
- * Web Search Extension — Brave LLM Context grounding for pi.
+ * Web Search Extension — Brave LLM Context grounding for Pi.
  *
  * Registers a web-search tool that searches the web using Brave LLM Context and
  * returns extracted page content, snippets, structured data, and sources for
@@ -213,7 +213,7 @@ interface SearchDetails {
 const TRUNCATION_NOTICE_BUDGET_BYTES = 512;
 
 /**
- * Bound the model-visible output with pi's shared tool truncation, so web-search
+ * Bound the model-visible output with Pi's shared tool truncation, so web-search
  * obeys the same byte and line limits as the built-in tools and never cuts a
  * line (and therefore never a multi-byte character) in half.
  */
@@ -253,7 +253,7 @@ function isAbortError(error: unknown): boolean {
 
 /**
  * Turn a failed request into an actionable error. Caller cancellation re-throws
- * the original abort error so pi keeps treating the call as cancelled rather
+ * the original abort error so Pi keeps treating the call as cancelled rather
  * than failed; any other abort came from REQUEST_TIMEOUT_MS.
  */
 function throwRequestError(

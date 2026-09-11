@@ -1,5 +1,5 @@
 /**
- * Web Fetch Extension — Firecrawl scrape for pi.
+ * Web Fetch Extension — Firecrawl scrape for Pi.
  *
  * Registers a web-fetch tool that sends a public URL to Firecrawl's v2 scrape
  * API and returns clean Markdown plus normalized page metadata. On exe.dev it
@@ -423,7 +423,7 @@ export default function (pi: ExtensionAPI) {
     name: "web_fetch",
     label: "Web Fetch",
     description:
-      "Fetch a public URL through Firecrawl's scrape API and return clean Markdown plus normalized page metadata. Output is truncated to pi's shared limits; when truncated, the complete sanitized document is saved to a temporary file.",
+      "Fetch a public URL through Firecrawl's scrape API and return clean Markdown plus normalized page metadata. Output is truncated to Pi's shared limits; when truncated, the complete sanitized document is saved to a temporary file.",
     promptSnippet:
       "Fetch a public web page through Firecrawl and return clean Markdown",
     promptGuidelines: [

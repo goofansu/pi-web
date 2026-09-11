@@ -1,6 +1,6 @@
 # pi-web
 
-Web tools for [pi](https://pi.dev):
+Web tools for [Pi](https://pi.dev):
 
 - `web_fetch` fetches a public page through Firecrawl and returns clean Markdown and normalized metadata.
 - `web_search` searches with Brave LLM Context and returns extracted content and citable sources.

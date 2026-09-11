@@ -1,7 +1,7 @@
 {
   "name": "pi-web",
   "version": "0.1.0",
-  "description": "Web search and page fetching tools for pi",
+  "description": "Web search and page fetching tools for Pi",
   "license": "MIT",
   "type": "module",
   "keywords": [
