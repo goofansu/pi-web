@@ -1,8 +1,19 @@
 {
-  "name": "pi-web",
-  "version": "0.1.0",
+  "name": "@goofansu/pi-web",
+  "version": "1.0.0",
   "description": "Web search and page fetching tools for Pi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goofansu/pi-web.git"
+  },
+  "homepage": "https://github.com/goofansu/pi-web#readme",
+  "bugs": {
+    "url": "https://github.com/goofansu/pi-web/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "keywords": [
     "pi-package"

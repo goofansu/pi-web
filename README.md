@@ -8,7 +8,7 @@ Web tools for [Pi](https://pi.dev):
 ## Install
 
 ```bash
-pi install https://github.com/goofansu/pi-web
+pi install npm:@goofansu/pi-web
 ```
 
 ## Configuration
