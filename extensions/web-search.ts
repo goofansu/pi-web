@@ -472,7 +472,12 @@ type BraveEndpoint =
   | typeof BRAVE_LLM_CONTEXT_ENDPOINT
   | typeof EXE_BRAVE_LLM_CONTEXT_ENDPOINT;
 
-type BraveEndpointResolver = () => Promise<BraveEndpoint>;
+interface ResolvedBraveEndpoint {
+  url: BraveEndpoint;
+  apiKey?: string;
+}
+
+type BraveEndpointResolver = () => Promise<ResolvedBraveEndpoint>;
 
 async function braveLlmContext(
   params: SearchParams,
@@ -503,12 +508,6 @@ async function braveLlmContext(
   }
 
   const endpoint = await resolveEndpoint();
-  const usesExeIntegration = endpoint === EXE_BRAVE_LLM_CONTEXT_ENDPOINT;
-  const apiKey = process.env.BRAVE_SEARCH_API_KEY;
-  if (!usesExeIntegration && !apiKey)
-    throw new Error(
-      "BRAVE_SEARCH_API_KEY is not set and no exe.dev Brave integration is attached",
-    );
 
   // Bound the request, and abort as soon as either the caller cancels or the
   // timeout fires. The composed signal also covers reading the response body.
@@ -524,9 +523,9 @@ async function braveLlmContext(
       "Accept-Encoding": "gzip",
       "Content-Type": "application/json",
     };
-    if (!usesExeIntegration && apiKey) headers["X-Subscription-Token"] = apiKey;
+    if (endpoint.apiKey) headers["X-Subscription-Token"] = endpoint.apiKey;
 
-    response = await fetch(endpoint, {
+    response = await fetch(endpoint.url, {
       method: "POST",
       signal: requestSignal,
       headers,
@@ -594,23 +593,24 @@ async function braveLlmContext(
 }
 
 export default function (pi: ExtensionAPI) {
-  const resolveEndpoint = createExeIntegrationEndpointResolver({
+  const discoverEndpoint = createExeIntegrationEndpointResolver({
     integrationName: "brave",
     integrationEndpoint: EXE_BRAVE_LLM_CONTEXT_ENDPOINT,
     publicEndpoint: BRAVE_LLM_CONTEXT_ENDPOINT,
   });
+  let cachedEndpoint: Promise<ResolvedBraveEndpoint> | undefined;
+  const resolveEndpoint = () =>
+    (cachedEndpoint ??= (async () => {
+      const apiKey = process.env.BRAVE_SEARCH_API_KEY?.trim();
+      if (apiKey) return { url: BRAVE_LLM_CONTEXT_ENDPOINT, apiKey };
 
-  pi.on("session_start", async (_event, ctx) => {
-    if (
-      !process.env.BRAVE_SEARCH_API_KEY &&
-      (await resolveEndpoint()) !== EXE_BRAVE_LLM_CONTEXT_ENDPOINT
-    ) {
-      ctx.ui.notify(
-        "web-search: BRAVE_SEARCH_API_KEY is not set and no exe.dev Brave integration is attached — web_search tool will fail.",
-        "warning",
+      const url = await discoverEndpoint();
+      if (url === EXE_BRAVE_LLM_CONTEXT_ENDPOINT) return { url };
+
+      throw new Error(
+        "Configure BRAVE_SEARCH_API_KEY or attach the exe.dev Brave integration.",
       );
-    }
-  });
+    })());
 
   pi.registerTool({
     name: "web_search",

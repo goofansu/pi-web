@@ -15,23 +15,23 @@ pi install npm:@goofansu/pi-web
 
 ### Web fetch
 
-On an exe.dev VM, `web_fetch` automatically uses an attached Firecrawl integration named `firecrawl` through `firecrawl.int.exe.xyz`.
-
-Elsewhere, Firecrawl's keyless tier works without configuration. Set `FIRECRAWL_API_KEY` to use an account's higher limits and credits:
+Set `FIRECRAWL_API_KEY` to use an account's higher limits and credits. An explicit key takes precedence over integration discovery:
 
 ```bash
 export FIRECRAWL_API_KEY=...
 ```
 
+Without a key, `web_fetch` lazily discovers an attached exe.dev Firecrawl integration named `firecrawl` and caches the result. If none is attached, it uses Firecrawl's keyless tier.
+
 ### Web search
 
-On an exe.dev VM, `web_search` automatically uses an attached Brave integration named `brave` through `brave.int.exe.xyz`.
-
-Elsewhere, set a Brave Search API key:
+Set a Brave Search API key:
 
 ```bash
 export BRAVE_SEARCH_API_KEY=...
 ```
+
+An explicit key is used directly. Without one, `web_search` lazily discovers and caches an attached exe.dev Brave integration named `brave`. If neither credential source is available, the first search returns an actionable configuration error.
 
 ## Development
 

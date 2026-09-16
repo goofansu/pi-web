@@ -221,10 +221,41 @@ describe("web_fetch Firecrawl request", () => {
     assert.doesNotMatch(JSON.stringify(result.details), /fc-test-key/);
   });
 
-  it("uses an attached exe.dev integration without sending an API key", async () => {
+  it("uses an explicit API key without attempting exe.dev discovery", async () => {
     const originalFetch = globalThis.fetch;
     const previousKey = process.env.FIRECRAWL_API_KEY;
-    process.env.FIRECRAWL_API_KEY = "fc-test-key";
+    process.env.FIRECRAWL_API_KEY = "explicit-key";
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    globalThis.fetch = (async (url: any, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => firecrawlResponse,
+      } as any;
+    }) as typeof fetch;
+
+    try {
+      const tool = registerWebFetchTool();
+      await tool.execute("call-1", { url: "https://example.com" });
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (previousKey === undefined) delete process.env.FIRECRAWL_API_KEY;
+      else process.env.FIRECRAWL_API_KEY = previousKey;
+    }
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, "https://api.firecrawl.dev/v2/scrape");
+    assert.equal(
+      (calls[0].init?.headers as Record<string, string>).Authorization,
+      "Bearer explicit-key",
+    );
+  });
+
+  it("uses and caches an attached exe.dev integration without sending an API key", async () => {
+    const originalFetch = globalThis.fetch;
+    const previousKey = process.env.FIRECRAWL_API_KEY;
+    delete process.env.FIRECRAWL_API_KEY;
     const calls: Array<{ url: string; init?: RequestInit }> = [];
     globalThis.fetch = (async (url: any, init?: RequestInit) => {
       calls.push({ url: String(url), init });
@@ -245,21 +276,22 @@ describe("web_fetch Firecrawl request", () => {
     try {
       const tool = registerWebFetchTool();
       result = await tool.execute("call-1", { url: "https://example.com" });
+      await tool.execute("call-2", { url: "https://example.org" });
     } finally {
       globalThis.fetch = originalFetch;
       if (previousKey === undefined) delete process.env.FIRECRAWL_API_KEY;
       else process.env.FIRECRAWL_API_KEY = previousKey;
     }
 
-    assert.equal(calls.length, 2);
-    assert.equal(
-      calls[1].url,
-      "https://firecrawl.int.exe.xyz/v2/scrape",
-    );
-    assert.equal(
-      (calls[1].init?.headers as Record<string, string>).Authorization,
-      undefined,
-    );
+    assert.equal(calls.length, 3);
+    assert.equal(calls[0].url, "https://reflection.int.exe.xyz/integrations");
+    for (const call of calls.slice(1)) {
+      assert.equal(call.url, "https://firecrawl.int.exe.xyz/v2/scrape");
+      assert.equal(
+        (call.init?.headers as Record<string, string>).Authorization,
+        undefined,
+      );
+    }
     assert.equal(result.details.authenticated, true);
   });
 
