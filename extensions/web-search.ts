@@ -616,12 +616,13 @@ export default function (pi: ExtensionAPI) {
     name: "web_search",
     label: "Web Search",
     description:
-      "Search the web with Brave LLM Context and return extracted page content, snippets, and a ranked source list. Answers broad, current-fact, news, and research questions directly, with citable sources.",
+      "Search the web with Brave LLM Context and return extracted page content, snippets, and a ranked source list for research and source discovery.",
     promptSnippet:
-      "Search the web with Brave LLM Context and return extracted content plus sources",
+      "Discover and rank web sources with Brave LLM Context, returning extracted content plus citations",
     promptGuidelines: [
-      "Use web_search when the task requires discovering or ranking sources — current information, recent events, external facts, product/docs lookups, or research that needs synthesis across several sources. Rewrite the request into a concise query, then cite the returned sources; pass goggles to boost, downrank, or restrict domains when the user wants specific or authoritative sources.",
-      "Use freshness for 'latest', recent, and news requests (pd/pw/pm/py, or a YYYY-MM-DDtoYYYY-MM-DD range). Each result reports a 'Page date' from Brave — treat it as approximate, because it can be the page's last-modified date rather than its first publication date, and prefer a date stated in the page content when one matters.",
+      "Choose exactly one search tool per query. When radius_web_search is available, apply its selection guidance first, then use web_search only when it does not select Radius. Otherwise, use web_search to discover or rank sources for external facts, product/docs lookups, and research across several sources.",
+      "For web_search, rewrite the request as a concise query and cite the returned sources. Use goggles to boost, downrank, or restrict domains when the user wants specific or authoritative sources.",
+      "When web_search is selected, use freshness for 'latest', recent, and news requests (pd/pw/pm/py, or a YYYY-MM-DDtoYYYY-MM-DD range). Each result reports a 'Page date' from Brave — treat it as approximate, because it can be the page's last-modified date rather than its first publication date, and prefer a date stated in the page content when one matters.",
       "Use count for the candidate pool Brave ranks and maxUrls for how many of those candidates may return content: at most min(count, maxUrls) sources come back, and often fewer once Brave drops low-relevance pages. Budgets: simple lookup count=5, maxUrls=3, maxTokens=2048; standard query count=20, maxTokens=8192; complex research count=50, maxUrls=10, maxTokens=16384. Cap a verbose source with maxTokensPerUrl so one page cannot dominate the context.",
       "Use web_fetch after web_search when full page content from the most valuable results would improve the answer. Fetch only those selected results, not every returned URL; skip web_fetch when web_search already returned enough context.",
       "Do NOT repeat the same search or maximize count, maxUrls, and token limits by default. Start with the task-sized budgets above; if results are weak, refine query, freshness, threshold, or goggles before broadening the candidate and context limits.",

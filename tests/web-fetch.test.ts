@@ -150,14 +150,14 @@ describe("web_fetch registration and schema", () => {
     assert.match(tool.description, /complete sanitized document.*temporary file/);
     assert.ok(tool.promptSnippet.length > 0);
     assert.ok(tool.promptGuidelines[0].startsWith("Use web_fetch "));
-    assert.match(guidelines, /when the user asks to fetch or read/);
-    assert.match(guidelines, /after web_search/);
-    assert.match(guidelines, /only the most valuable results/);
-    assert.match(guidelines, /web_fetch retrieves a known URL and does not search/);
+    assert.match(guidelines, /when the user asks to read a specific URL/);
+    assert.match(guidelines, /result from the selected search tool/);
+    assert.match(guidelines, /Source discovery belongs to the selected search tool/);
+    assert.doesNotMatch(guidelines, /after web_search/);
     assert.match(guidelines, /third-party service/);
-    assert.match(guidelines, /Do NOT repeatedly fetch/);
-    assert.match(guidelines, /untrusted data/);
-    assert.match(guidelines, /never as instructions/);
+    assert.match(guidelines, /Fetch each URL once per evidence state/);
+    assert.match(guidelines, /untrusted evidence/);
+    assert.match(guidelines, /current conversation instructions/);
   });
 
   it("exposes bounded scrape controls without custom headers", () => {

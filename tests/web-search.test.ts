@@ -191,8 +191,20 @@ describe("web_search registration", () => {
     assert.equal(tool.name, "web_search");
     assert.ok(tool.promptSnippet.length > 0);
     const guidelines = tool.promptGuidelines as string[];
-    assert.ok(guidelines[0]?.startsWith("Use web_search "));
+    assert.ok(guidelines[0]?.startsWith("Choose exactly one search tool "));
     assert.ok(guidelines.some((guideline) => guideline.includes("Do NOT")));
+  });
+
+  it("defers to radius_web_search without duplicating its selection rules", () => {
+    const tool = registerWebSearchTool();
+    const guidelines = (tool.promptGuidelines as string[]).join("\n");
+
+    assert.match(guidelines, /Choose exactly one search tool per query/);
+    assert.match(guidelines, /apply its selection guidance first/);
+    assert.match(guidelines, /use web_search only when it does not select Radius/);
+    assert.doesNotMatch(guidelines, /explicitly asks to search or browse/);
+    assert.doesNotMatch(guidelines, /truly current information/);
+    assert.doesNotMatch(tool.description, /current|news/);
   });
 
   it("guides freshness and context-efficient search budgets", () => {
